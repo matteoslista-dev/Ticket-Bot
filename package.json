@@ -1,0 +1,1 @@
+{"name":"ticket-session-manager","version":"0.1.0","private":true,"type":"module","engines":{"node":">=20"},"scripts":{"start":"node src/server.js","test":"node --test"},"dependencies":{"playwright":"1.58.2"}}
