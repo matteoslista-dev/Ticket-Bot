@@ -27,3 +27,7 @@ npm test
 ```
 
 The test uses a local simulated queue: verifies cookie isolation, manual challenge interaction, automatic admission detection, manual admission and cleanup. Linux may require `npx playwright install --with-deps chromium`. This does not validate the real site's admission flow or Windows-specific window behavior.
+
+### Default keyword alerts
+
+The app watches for **Proceeds** OR **Checkout**, separately, case-insensitively and as whole words in visible text, including embedded frames. Either triggers a yellow **possible** status and focuses the browser. It does not confirm admission, click anything or buy tickets. Verify the page yourself and click **Mark admitted**. Unrelated text can cause false alerts; keyword monitoring stops for that session after its first alert. Uncheck the keyword option before starting if you want only verified text/selector detection or manual confirmation.

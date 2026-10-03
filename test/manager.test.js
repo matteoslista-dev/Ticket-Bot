@@ -33,3 +33,21 @@ test('isolated sessions, manual challenge, admission detection and cleanup',asyn
  assert.equal(manager.snapshot()[0].status,'admitted');
  } finally {await manager.close();await new Promise(r=>server.close(r));}
  });
+
+test('either keyword alerts independently; hidden words do not confirm admission',async()=>{
+ const server=http.createServer((req,res)=>{res.setHeader('Content-Type','text/html');res.end('<p hidden>Checkout</p><p>Waiting in queue</p>');});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));
+ const manager=new Manager({headless:true});
+ try {
+  await manager.start({url:`http://127.0.0.1:${server.address().port}`,count:2});
+  await new Promise(r=>setTimeout(r,2500));
+  assert.deepEqual(manager.snapshot().map(s=>s.status),['waiting','waiting']);
+  await manager.sessions[0].page.setContent('<p hidden>Checkout</p><button>PROCEEDS to payment</button>');
+  await manager.sessions[1].page.setContent('<iframe srcdoc="<button>Proceed to Checkout</button>"></iframe>');
+  const deadline=Date.now()+10000;
+  while(manager.snapshot().some(s=>s.status==='waiting')&&Date.now()<deadline) await new Promise(r=>setTimeout(r,100));
+  assert.deepEqual(manager.snapshot().map(s=>s.status),['possible','possible']);
+  await manager.admit(1);
+  assert.equal(manager.snapshot()[0].status,'admitted');
+ } finally {await manager.close();await new Promise(r=>server.close(r));}
+});

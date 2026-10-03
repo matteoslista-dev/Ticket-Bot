@@ -3,7 +3,7 @@ import { chromium } from 'playwright';
 export class Manager {
   constructor({headless=false}={}) { this.headless=headless; this.sessions=[]; this.busy=false; }
   snapshot() { return this.sessions.map(({id,status,error})=>({id,status,error})); }
-  async start({url,count=5,selector='',admissionText=''}) {
+  async start({url,count=5,selector='',admissionText='',watchKeywords=true}) {
     const target=new URL(url);
     if (!['http:','https:'].includes(target.protocol)) throw new Error('Use an HTTP or HTTPS URL.');
     if (!Number.isInteger(count)||count<1||count>50) throw new Error('Session count must be 1–50.');
@@ -19,19 +19,32 @@ export class Manager {
           session.browser.on('disconnected',()=>{session.status='closed';});
           await session.page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
           session.status='waiting';
-          if(selector||admissionText) {
+          if(selector||admissionText||watchKeywords) {
             // Observe the existing page only; never refresh, solve CAPTCHAs or submit forms.
             session.timer=setInterval(async()=>{
               if(session.checking||session.status!=='waiting') return;
               session.checking=true;
               try {
                 let admitted=false;
-                for(const frame of session.page.frames()) {
+                for(const frame of (selector||admissionText?session.page.frames():[])) {
                   const marker=selector?frame.locator(selector):frame.getByText(admissionText,{exact:true});
                   if(await marker.first().isVisible()) {admitted=true;break;}
                 }
                 if(admitted) {
                   await this.admit(id); clearInterval(session.timer);
+                } else if(watchKeywords) {
+                  for(const frame of session.page.frames()) {
+                    const markers=frame.getByText(/\b(?:proceeds|checkout)\b/i);
+                    for(let i=0;i<await markers.count();i++) {
+                      if(await markers.nth(i).isVisible()) {
+                        session.status='possible';
+                        clearInterval(session.timer);
+                        await session.page.bringToFront();
+                        break;
+                      }
+                    }
+                    if(session.status==='possible') break;
+                  }
                 }
               } catch(error) {session.error=error.message;}
               finally {session.checking=false;}
