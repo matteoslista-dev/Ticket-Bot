@@ -12,11 +12,11 @@ npx playwright install chromium
 npm start
 ```
 
-Open the control panel at `http://127.0.0.1:8787` in your local browser. Select 5 sessions initially (maximum 20), then click **Open sessions**. Opening is sequential and may take time. Use **Show window** to switch between sessions and complete each CAPTCHA. The control panel must stay running. Closing a browser loses that session; closing the app closes all browsers. Nothing persists across restarts.
+Open the control panel at `http://127.0.0.1:8787` in your local browser. Select 5 sessions initially (maximum 50), then click **Open sessions**. Opening is sequential and may take time. Use **Show window** to switch between sessions and complete each CAPTCHA. The control panel must stay running. Closing a browser loses that session; closing the app closes all browsers. Nothing persists across restarts.
 
-If you see admission, click **Mark admitted**. For automatic detection, enter a CSS selector that you have verified exists and is visible only after admission. No Billetweb admission selector has been verified or provided. Detection observes the existing page every two seconds without additional navigation; it does not submit forms. An alert appears in the control panel and the matching browser is brought forward (Windows may restrict foreground focus). All other windows stay open.
+If you see admission, click **Mark admitted**. For automatic detection, enter exact text visible only after admission, or enter a CSS selector that you have verified exists and is visible only after admission. No Billetweb admission selector has been verified or provided. Text must match the complete visible element text exactly. Selectors take priority when both fields are filled. Detection checks the page and its embedded frames. Detection observes the existing page every two seconds without additional navigation; it does not submit forms. An alert appears in the control panel and the matching browser is brought forward (Windows may restrict foreground focus). All other windows stay open.
 
-Twenty browsers can consume substantial memory. Increase the session count only within the agreed testing scope and your machine's capacity. Independent cookies do not guarantee independent queue entries or better odds.
+Fifty browsers can consume substantial memory. Increase the session count only within the agreed testing scope and your machine's capacity. Independent cookies do not guarantee independent queue entries or better odds.
 
 ## Development validation
 

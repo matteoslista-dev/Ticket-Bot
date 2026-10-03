@@ -2,14 +2,15 @@
 <style>body{font:16px system-ui;background:#101827;color:#edf2ff;max-width:850px;margin:40px auto;padding:20px}input,button{font:inherit;padding:10px;border-radius:6px;margin:6px}input[type=url]{width:90%}button{cursor:pointer;background:#acd3ff;border:0}label{display:block}article{padding:12px;border-bottom:1px solid #526079}.admitted{background:#194d38}#error{color:#ffb2b2}</style>
 <h1>Ticket session manager</h1><p>Complete CAPTCHAs manually in each browser window. Sessions stay open until you close them.</p>
 <label>Website <input id="url" type="url" value="https://www.billetweb.fr/one-piece-treasure-cup-paris-2026"></label>
-<label>Sessions <input id="count" type="number" min="1" max="20" value="5"></label>
+<label>Sessions <input id="count" type="number" min="1" max="50" value="5"></label>
+<label>Exact admission text (optional) <input id="admissionText" placeholder="Text visible only after admission"></label>
 <label>Admission selector (optional) <input id="selector" placeholder="Verified CSS selector for an admitted page"></label>
-<p>Leave the selector empty to confirm admission yourself. An incorrect selector can report admission prematurely.</p>
+<p>Enter exact text that appears only after admission, or a verified selector (which takes priority). Leave both empty to confirm admission yourself. An incorrect selector can report admission prematurely.</p>
 <button id="start">Open sessions</button><button id="close">Close all sessions</button><p id="error" role="alert"></p><p id="notice" role="status"></p><section id="sessions"></section>
 <script>
 const $=id=>document.getElementById(id);let seen=new Set();
 async function action(name,data={}){ $('error').textContent='';try{const r=await fetch('/api/'+name,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const result=await r.json();if(!r.ok)throw Error(result.error);await refresh();}catch(e){$('error').textContent=e.message;}}
-$('start').onclick=()=>action('start',{url:$('url').value,count:Number($('count').value),selector:$('selector').value.trim()});
+$('start').onclick=()=>action('start',{url:$('url').value,count:Number($('count').value),selector:$('selector').value.trim(),admissionText:$('admissionText').value.trim()});
 $('close').onclick=()=>{if(confirm('Close every session? Queue positions and admission may be lost.'))action('close');};
 async function refresh(){try{const r=await fetch('/api/sessions');const data=await r.json();$('start').disabled=data.busy||data.sessions.length>0;$('close').disabled=data.busy;$('sessions').replaceChildren();for(const s of data.sessions){const row=document.createElement('article');row.className=s.status;const text=document.createElement('span');text.textContent=`Session ${s.id}: ${s.status}${s.error?' — '+s.error:''} `;row.append(text);for(const [label,name] of [['Show window','focus'],['Mark admitted','admit']]){const b=document.createElement('button');b.textContent=label;b.disabled=['closed','error','opening'].includes(s.status);b.onclick=()=>action(name,{id:s.id});row.append(b);}$('sessions').append(row);if(s.status==='admitted'&&!seen.has(s.id)){seen.add(s.id);$('notice').textContent=`Session ${s.id} admitted — its window is ready.`;document.title='Admitted! — Ticket sessions';}}if(!data.sessions.length){seen.clear();$('notice').textContent='';document.title='Ticket sessions';}}catch(e){$('error').textContent='Control panel disconnected: '+e.message;}}
 setInterval(refresh,1000);refresh();

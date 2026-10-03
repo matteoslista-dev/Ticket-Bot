@@ -3,10 +3,10 @@ import { chromium } from 'playwright';
 export class Manager {
   constructor({headless=false}={}) { this.headless=headless; this.sessions=[]; this.busy=false; }
   snapshot() { return this.sessions.map(({id,status,error})=>({id,status,error})); }
-  async start({url,count=5,selector=''}) {
+  async start({url,count=5,selector='',admissionText=''}) {
     const target=new URL(url);
     if (!['http:','https:'].includes(target.protocol)) throw new Error('Use an HTTP or HTTPS URL.');
-    if (!Number.isInteger(count)||count<1||count>20) throw new Error('Session count must be 1–20.');
+    if (!Number.isInteger(count)||count<1||count>50) throw new Error('Session count must be 1–50.');
     if (this.busy||this.sessions.length) throw new Error('Close existing sessions before starting again.');
     this.busy=true;
     try {
@@ -19,13 +19,18 @@ export class Manager {
           session.browser.on('disconnected',()=>{session.status='closed';});
           await session.page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
           session.status='waiting';
-          if(selector) {
+          if(selector||admissionText) {
             // Observe the existing page only; never refresh, solve CAPTCHAs or submit forms.
             session.timer=setInterval(async()=>{
               if(session.checking||session.status!=='waiting') return;
               session.checking=true;
               try {
-                if(await session.page.locator(selector).first().isVisible()) {
+                let admitted=false;
+                for(const frame of session.page.frames()) {
+                  const marker=selector?frame.locator(selector):frame.getByText(admissionText,{exact:true});
+                  if(await marker.first().isVisible()) {admitted=true;break;}
+                }
+                if(admitted) {
                   await this.admit(id); clearInterval(session.timer);
                 }
               } catch(error) {session.error=error.message;}
